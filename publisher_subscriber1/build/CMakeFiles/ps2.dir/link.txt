@@ -1,1 +1,0 @@
-/usr/bin/clang++ -g -Xlinker --dependency-file=CMakeFiles/ps2.dir/link.d CMakeFiles/ps2.dir/main.cpp.o -o ps2  /usr/lib/x86_64-linux-gnu/libboost_thread.so.1.83.0 /usr/lib/x86_64-linux-gnu/libboost_chrono.so.1.83.0 /usr/lib/x86_64-linux-gnu/libboost_atomic.so.1.83.0
