@@ -1,0 +1,79 @@
+
+/*
+Driver Nodelet setup
+
+This choreography is based on the same primitives as the publisher subscriber setup, where nodelets 
+can subscribe to topics. However, we do not distinguish between producers and subscribers here, and instead
+have nodelets contain a controller and driver for specific hardware, which publishes topics to subscribe to and 
+subscribes to other nodelets topics. Thus, we have an asynchronous setup where n nodelets subscribe to eachother and 
+communicate over messages with eachother, and then interact with their respective hardware over commands.
+*/
+
+
+/*
+Idea: define two global types, one for subscribing and one for communicating, and concatenate them.
+*/
+
+Participant S : {n}
+Channel s{n}
+Channel a{1}
+
+Subscribe = 
+    foreach(0 =< i < n) {
+        foreach(i < j < n) {
+            S[i] -> S[j]: a<Topic>{
+                subscribe: S[j] -> S[i]: s[i]<callback>. end.
+                not_subscribe: end.
+            }
+        }
+    }
+
+
+Participant D: {n}
+Participant C: {1}
+
+StateChange = Rec X {
+    D[i] -> S[i]: s[i]<State>.
+        foreach(0 <= j < n) {
+            subscribed[i]: 
+                S[i] -> S[j]: s[j]<Message>.
+                S[j] -> C: a<Command>{
+                    IDLE: X
+                    TWIST: X
+                    DRIVE: X
+                    STOP: end.
+                }
+            not_subscribed[i]: 
+                X
+        }
+} 
+
+Driver_Nodelet = Subscribe. Rec X {StateChange | X}
+
+
+
+
+
+StateChange = Rec D[i] -> S[i]: s[i]<State>.
+    foreach(0 <= j < n) {
+        subscribed[i]: 
+            S[i] -> S[j]: s[j]<Message>.
+            S[j] -> C: a<Command>{
+                shutdown:
+                    StateChange'
+
+                !shutdown:
+                    end.
+            }
+            
+        not_subscribed[i]: 
+            StateChange'
+    }
+
+Driver_Nodelet = Subscribe.StateChange.
+
+Driver_Nodelet = Subscribe. rec X{StateChange | X}
+
+Driver_Nodelet = Subscribe. R end li.lx.StateChange{i + 1/i} 
+
+Driver_Nodelet = Subscribe. rec.x {StateChange / x if a::command != STOP} 

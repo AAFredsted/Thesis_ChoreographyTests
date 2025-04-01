@@ -1,0 +1,19 @@
+P = Provider
+S = S_i for i in I
+S_i = subscriber i
+C = S for i in I
+C_i = callback performer I
+Channel m_i for i in I
+Channel c_i for i in I
+
+
+S_i -> P : c_i <Callback >;
+S_i -> P : m_i <Message > &{
+        transformable:
+            P -> S_i: c_i{l_i: C_i};
+            C_i -> S_i: m_i <Message >;
+            .end
+        non -transformable: 
+            m::m_i. end;
+    }
+

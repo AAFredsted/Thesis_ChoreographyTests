@@ -1,0 +1,3 @@
+/home/aaf/Desktop/thesis/bug_types/driver_nodelet/build/CMakeFiles/kobuki_1.dir
+/home/aaf/Desktop/thesis/bug_types/driver_nodelet/build/CMakeFiles/edit_cache.dir
+/home/aaf/Desktop/thesis/bug_types/driver_nodelet/build/CMakeFiles/rebuild_cache.dir

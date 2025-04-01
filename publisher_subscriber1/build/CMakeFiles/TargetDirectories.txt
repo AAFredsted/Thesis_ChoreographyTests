@@ -1,0 +1,3 @@
+/home/aaf/Desktop/thesis/bug_types/publisher_subscriber1/build/CMakeFiles/ps2.dir
+/home/aaf/Desktop/thesis/bug_types/publisher_subscriber1/build/CMakeFiles/edit_cache.dir
+/home/aaf/Desktop/thesis/bug_types/publisher_subscriber1/build/CMakeFiles/rebuild_cache.dir
