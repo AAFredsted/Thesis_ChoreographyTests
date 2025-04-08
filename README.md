@@ -88,7 +88,7 @@ The language is defined by the following EBNF:
 <channel> ::= <identifier>
             | <identifier> "[" <index_expr> "]"
 
-<type> ::= <identifier>
+<type> ::= "nat" | "bool" | <identifier>
 
 <index_expr> ::= <identifier>
                | <number>

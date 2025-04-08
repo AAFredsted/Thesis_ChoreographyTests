@@ -1,73 +1,43 @@
-#declare participants
-P : Provider{1} 
-
-#declare participants with selection
-Index I = {1...}
-S : Subscriber{i : I}
-
-
-#declare channels
-Index J = {1..}
-Channel: s{j: J} m{j: J}
-
-#declare labels 
-
-Label l: {fsub: {true, false}, sub: {true}}
-
-#we can use branching and selection operator on labels and 
-
-#declare resursive global type
-G = rec t. 
-    S[i] -> P : s[j]<Callback>*{
-        fsub:
-            true: 
-                S[i] -> P : m[j]<Message>;
-                P -> S[i]: m[j]<Message>;
-                end.
-            false:
-                end.
-
-        sub:
-            S[i] -> P : m[j]<Message>;
-            P -> S[i]: m[j]<Message>;
-            end.
-    }.
-    t.
-
-
-# issue 1: we can recieve and send messages at the same time (as we use that channel !)
-# issue 2: two S[i] could send at the same time ! (no selection built in, so we need different channels)
-
-
-Participant S{n}
-Participant P{1}
-Participant T{m}
-
+//indexed participants  (Subscriber)
 
 Index I = {1..n} #subscribers
-Index J = {1..t} #Topics
+Index J = {1..n} #Topics
+
+Participant Subscriber{i : I}
+Participant Provider{1}
+Participant Topic{j : J}
 
 Channel g{1}
 Channel q{i: I} #task queue
-Channel s{i: J} #Topics to Subscribe to
 
-Subscribe =
-    foreach(i: I) {
-        foreach(j: J) {
-            T[j] -> S[i]: s[j]<Topic>{
-                subscribe: S[i] -> T[j] : s[j]::h<Callback>. end #provide callback
-                not_subscribe: end
-            }
+Label l{subscribe, not_subscribe}
+
+Subscribe_Event{j: J, n: nat} =
+    Topic[j] -> Provider: g<Topic>{
+        foreach(i: I) {
+            l::subscribe: Subscriber[i] -> Topic[j]: g<callback>. end.
+            l::not_subscribe: end.
         }
     }
 
-Topic_Event{j: J} = Rec X {
-    P -> T[j] : s[j]<Message>.
-    foreach(i::s[j]) {
-        T[j] -> S[i]: q[i]::h<Message>.
-        ?S[i] -> P: g<Message>.
+Subscribe_Event{j: J, 0} = end.
+
+Topic_Event{j': J, n: nat} = Rec X(j, n) {
+    Provider -> Topic[j] : g<Message>.
+    foreach(i: I) {
+        if(Subscriber[i] l::subscribe Topic[j]){
+            Topic[i] -> Subscriber[i]: q[i]<Message>
+            ? Subscriber[i] -> P: g<Message>. X{j, n}
+        }
     }
-} | X
+}. X{j, n-1}
+
+Topic_Event{j': J, 0} = end.
 
 
-Publisher_Subscriber = Subscribe. Rec X {Topic_Event | X}
+Publisher_Subscriber = 
+    Rec X(j': J, n: nat){Subscriber_Event(j, n) | X(j', n-1)}. 
+    Rec X(j': J, n: nat){Topic_Event(j, n) | X(j', n-1)}.
+
+
+

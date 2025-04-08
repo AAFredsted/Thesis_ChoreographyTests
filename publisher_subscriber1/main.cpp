@@ -8,20 +8,11 @@
 #include <boost/thread.hpp>
 #include <boost/chrono.hpp>
 #include <map>
+#include <cmath>
 
 template <typename T> 
 void printMessage(const Message<T>& msg){
     std::println("Message: {}, {}, ({}, {})", msg.header, msg.timestamp, msg.data->first, msg.data->second);
-}
-
-void messageCallback(Message<std::pair<float, float>>& msg) {
-    std::println("Received Message");
-    printMessage(msg);
-}
-
-void filterMessageCallback(Message<std::pair<float, float>>& msg) {
-  std::println("Filtered Message Recieved");
-  printMessage(msg);
 }
 
 struct TopicsContainer {
@@ -42,41 +33,49 @@ struct TopicsContainer {
   }
 };
 
-
 int main() {
     using coordinate = std::pair<float, float>;
     using lineString = std::pair<coordinate, coordinate>;
-
-    Message<coordinate> m1{"coordinate", static_cast<size_t>(std::time(nullptr)), new coordinate{1.2, 1.3}};
-    Message<coordinate> m2{"coordinate", static_cast<size_t>(std::time(nullptr)), new coordinate{1.4, 1.5}};
-    Message<coordinate> m3{"coordinate", static_cast<size_t>(std::time(nullptr)), new coordinate{2, 1.3}};
-
+  
     TopicsContainer topics;
     Provider<TopicsContainer> provider(std::move(topics));
 
-    // Create a subscriber
-    Subscriber<coordinate, boost::function<void(Message<coordinate>&)>> subscriber(messageCallback);
-    Subscriber<coordinate, boost::function<void(Message<coordinate>&)>> filtersubscriber(filterMessageCallback);
+    coordinate* coord1 = nullptr;
+    Subscriber<coordinate, boost::function<void(Message<coordinate>&)>> setconfig([&coord1, &provider](const Message<coordinate> &msg) {
+      std::println("Coordinate recieved");
+      if(coord1 != nullptr) {
+        std::println("linestring published");
+        Message m = Message<lineString>{"linestring", static_cast<size_t>(std::time(nullptr)), new lineString{*coord1, *msg.data}};
+        provider.publish("Linestring", m);
+      }
+      coord1 = msg.data;
+    });
 
-    
-    // Subscribe to the "Coordinate" topic using the subscriber's getAdd method
-    provider.subscribe<coordinate>("Coordinate", subscriber.getAdd());
-    provider.subscribe<coordinate>("Coordinate", filtersubscriber.getFilterAdd([](const Message<coordinate>& msg) {
-      float x = msg.data->first;
-      float y = msg.data->second;
+    provider.subscribe("Coordinate", setconfig.getAdd());
 
-      msg.data->first +=1;
-      return x > 1 && x < 2 && y > 1 && y < 2;
-  }));
+    //Subscriber that prints out linestrings when they are added. 
+    Subscriber<lineString, boost::function<void(Message<lineString>&)>> lineStringSubscriber([](Message<lineString> &msg){
+      std::println("linestring recieved");
+      std::println("linestring from ({}, {}) to ({},{})", msg.data->first.first, msg.data->first.second, msg.data->second.first, msg.data->second.second);
+    });
 
+    provider.subscribe<lineString>("Linestring", lineStringSubscriber.getAdd());
+
+
+    Message<coordinate> m1{"coordinate", static_cast<size_t>(std::time(nullptr)), new coordinate{1.0f, 1.0f}};
+    Message<coordinate> m2{"coordinate", static_cast<size_t>(std::time(nullptr)), new coordinate{1.0f, 1.5f}};
+    Message<coordinate> m3{"coordinate", static_cast<size_t>(std::time(nullptr)), new coordinate{1.5f, 1.5f}};
+    Message<coordinate> m4{"coordinate", static_cast<size_t>(std::time(nullptr)), new coordinate{2.0f, 2.0f}};
 
     // Publish the message to the "Coordinate" topic
     provider.publish<coordinate>("Coordinate", m1);
     provider.publish<coordinate>("Coordinate", m2);
     provider.publish<coordinate>("Coordinate", m3);
-
-    while(!subscriber.isDone() && !filtersubscriber.isDone()){
+    provider.publish<coordinate>("Coordinate", m4);
+    
+    while(!setconfig.isDone()){
       boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
     }
+    
     return 0;
 }
