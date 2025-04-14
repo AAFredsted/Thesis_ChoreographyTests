@@ -3,12 +3,12 @@
 Index I = {1..n} #subscribers
 Index J = {1..n} #Topics
 
-Participant Subscriber{i : I}
+Participant Subscriber{I}
 Participant Provider{1}
-Participant Topic{j : J}
+Participant Topic{J}
 
 Channel g{1}
-Channel q{i: I} #task queue
+Channel q{I} #task queue
 
 Label l{subscribe, not_subscribe}
 
@@ -22,7 +22,7 @@ Subscribe_Event{j: J, n: nat} =
 
 Subscribe_Event{j: J, 0} = end.
 
-Topic_Event{j': J, n: nat} = Rec X(j, n) {
+Topic_Event{j: J, n: nat} = Rec X(j, n) {
     Provider -> Topic[j] : g<Message>.
     foreach(i: I) {
         if(Subscriber[i] l::subscribe Topic[j]){
@@ -32,12 +32,12 @@ Topic_Event{j': J, n: nat} = Rec X(j, n) {
     }
 }. X{j, n-1}
 
-Topic_Event{j': J, 0} = end.
+Topic_Event{j: J, 0} = end.
 
 
 Publisher_Subscriber = 
-    Rec X(j': J, n: nat){Subscriber_Event(j, n) | X(j', n-1)}. 
-    Rec X(j': J, n: nat){Topic_Event(j, n) | X(j', n-1)}.
+    Rec X(j: J, n: nat){Subscriber_Event(j, n) | X(k: J\j, n-1)}. 
+    Rec X(j': J, n: nat){Topic_Event(j, n) | X(k: J\j, n-1)}.
 
 
 

@@ -5,12 +5,12 @@
 Index I = {1..n} #subscribers
 Index J = {1..n} #Topics
 
-Participant Subscriber{i : I}
+Participant Subscriber{I}
 Participant Provider{1}
-Participant Topic{j : J}
+Participant Topic{J}
 
 Channel g{1}
-Channel q{i: I} #task queue
+Channel q{I} #task queue
 
 Label l{subscribe, not_subscribe}
 
@@ -24,39 +24,22 @@ Subscribe_Event{j: J, n: nat} =
 
 Subscribe_Event{j: J, 0} = end.
 
-Topic_Event{j': J, n: nat} = Rec X(j, n) {
+Topic_Event{j: J, n: nat} = Rec X(j, n) {
     Provider -> Topic[j] : g<Message>.
     foreach(i: I) {
         if(Subscriber[i] l::subscribe Topic[j]){
             Topic[i] -> Subscriber[i]: q[i]<Message>
-            ? Subscriber[i] -> P: g<Message>. X{j, n}
+            ? Subscriber[i] -> P: g<Message>. X{k: J, n}
         }
     }
-}. X{j, n-1}
+}. X{k: J, n-1}
 
-Topic_Event{j': J, 0} = end.
+Topic_Event{j: J, 0} = end.
 
 
 Publisher_Subscriber = 
-    Rec X(j': J, n: nat){Subscriber_Event(j, n). X(j', n-1)}. 
-    Rec X(j': J, n: nat){Topic_Event(j, n). X(j', n-1)}.
+    Rec X(j: J, n: nat){Subscriber_Event(j, n). X(k: J, n-1)}. 
+    Rec X(j: J, n: nat){Topic_Event(j, n). X(k: J, n-1)}.
 
-
-/*
-The language consists of the following parts
-
-Decl: which is a declaraiton of Index, Label, Participant, Channel and Global_Type.
-
-The final declaration must be of a global type. 
-Global types consist of communication between Participants over channels defined as  S->I: i<Type>,
-where I recieves ans S sends. 
-
-To make the language more flexible, we can index participants and channels using []-operator, if we put them inside a Recursive statement, where
-
-Rec X(j: J, n: nat){#interactoin} is the base declaration, where we have j from declaration of index J and n from the natural numbers.
-Now, foreach(i: I) is a special case of Rec X(i : max(I)){Sometype(i) | X(i-1)}. Now we also allow for the definition of arbitrary indeces with the '-operator. 
-
-We also allow for two types of branching, one where we assign labels and another where we select based on those labels
-*/
 
 
